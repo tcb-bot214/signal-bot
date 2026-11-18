@@ -1,5 +1,6 @@
 import os
 import threading
+import asyncio
 from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -17,7 +18,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("SIGNAL Pair: USDJPY Action: BUY")
 
-def run_bot():
+async def run_bot_async():
     print("=== BOT STARTING ===", flush=True)
     print("TOKEN EXISTS:", bool(TOKEN), flush=True)
     if not TOKEN:
@@ -27,11 +28,17 @@ def run_bot():
         app_bot = ApplicationBuilder().token(TOKEN).build()
         app_bot.add_handler(CommandHandler("start", start))
         app_bot.add_handler(CommandHandler("signal", signal))
+        await app_bot.initialize()
+        await app_bot.start()
+        await app_bot.updater.start_polling()
         print("=== BOT POLLING STARTED ===", flush=True)
-        app_bot.run_polling()
+        await asyncio.Event().wait()
     except Exception as e:
         print("=== BOT CRASHED ===", flush=True)
         print(f"ERROR: {e}", flush=True)
+
+def run_bot():
+    asyncio.run(run_bot_async())
 
 if __name__ == "__main__":
     threading.Thread(target=run_bot, daemon=True).start()
